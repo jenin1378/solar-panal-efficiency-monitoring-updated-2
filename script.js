@@ -1,7 +1,7 @@
 const panels = [
   { id: "PNL-01", name: "Roof A1", rated: 420, defect: 1 },
-  { id: "PNL-02", name: "Roof A2", rated: 420, defect: 0.8 },
-  { id: "PNL-03", name: "South B1", rated: 380, defect: 0.5 },
+  { id: "PNL-02", name: "Roof A2", rated: 420, defect: 0.9 },
+  { id: "PNL-03", name: "South B1", rated: 380, defect: 0.6 },
   { id: "PNL-04", name: "South B2", rated: 380, defect: 1 }
 ];
 
@@ -12,23 +12,24 @@ const fleetStats = document.getElementById("fleetStats");
 const noIssues = document.getElementById("noIssues");
 let charts = {};
 
-async function sendAlert(message) {
-  console.log("Sending SMS/Email Alert:", message);
-}
-
-async function fetchLiveAPI() {
-  return null;
-}
-
+// Simulated data
 function generateData(p) {
-  let irr = Math.max(0, Math.sin(Date.now() / 200000));
-  let watts = (p.rated * irr * p.defect) + (Math.random()*15 - 7);
+  let time = new Date().getHours();
+  let daylight = Math.max(0, Math.sin((time - 6) / 12 * Math.PI)); // more realistic
+
+  let irr = daylight + (Math.random()*0.1 - 0.05); 
+  irr = Math.max(0, irr);
+
+  let watts = p.rated * irr * p.defect + (Math.random()*10 - 5);
   watts = Math.max(0, watts);
-  let temp = 25 + (irr * 30) + (Math.random()*2);
-  let eff = watts / p.rated;
+
+  let temp = 25 + irr * 35 + (Math.random()*2);
+  let eff = (watts / p.rated);
+
   return { watts, eff, temp, irr };
 }
 
+// UI Setup
 panels.forEach(p => {
   const card = document.createElement("div");
   card.id = `card-${p.id}`;
@@ -56,15 +57,11 @@ panels.forEach(p => {
 });
 
 function update() {
-  let fleetTotal = 0;
-  let effValues = [];
-  let badPanels = [];
+  let fleetEff = [];
 
   panels.forEach(p => {
     const { watts, eff, temp, irr } = generateData(p);
-
-    fleetTotal += watts;
-    effValues.push(eff);
+    fleetEff.push(eff);
 
     const chart = charts[p.id];
     chart.data.labels.push("");
@@ -76,25 +73,32 @@ function update() {
     document.getElementById(`eff-${p.id}`).innerText = `Efficiency: ${(eff*100).toFixed(1)}%`;
     document.getElementById(`temp-${p.id}`).innerText = `Temperature: ${temp.toFixed(1)} °C`;
     document.getElementById(`irr-${p.id}`).innerText = `Irradiance: ${irr.toFixed(2)} kW/m²`;
+  });
 
+  // Fleet Median Efficiency Reference
+  fleetEff.sort();
+  let medianEff = fleetEff[Math.floor(fleetEff.length / 2)];
+
+  let badPanels = [];
+
+  panels.forEach(p => {
+    const card = document.getElementById(`card-${p.id}`);
+    const eff = charts[p.id].data.datasets[0].data.slice(-1)[0] / p.rated;
     const statusEl = document.getElementById(`status-${p.id}`);
-    const cardEl = document.getElementById(`card-${p.id}`);
 
-    if (eff < 0.6) {
-      statusEl.innerText = "⚠ DEFECT / LOW PERFORMANCE";
+    if (eff < medianEff * 0.85) {
+      statusEl.innerText = "⚠ LOW PERFORMANCE";
       statusEl.style.color = "red";
+      card.style.display = "block";
       badPanels.push(p.id);
-      cardEl.style.display = "block";
-      sendAlert(`Panel ${p.id} is underperforming.`);
     } else {
       statusEl.innerText = "✅ Normal";
       statusEl.style.color = "green";
-      cardEl.style.display = showAll ? "block" : "none";
+      card.style.display = showAll ? "block" : "none";
     }
   });
 
-  let avgEff = (effValues.reduce((a,b)=>a+b)/effValues.length)*100;
-  fleetStats.innerText = `Total Output: ${fleetTotal.toFixed(1)} W | Avg Efficiency: ${avgEff.toFixed(1)}%`;
+  fleetStats.innerText = `Median Efficiency: ${(medianEff*100).toFixed(1)}%`;
 
   if (badPanels.length > 0) {
     alertBox.style.display = "block";
@@ -108,11 +112,13 @@ function update() {
 
 setInterval(update, 1000);
 
+// Toggle show all / only defective
 document.getElementById("toggleViewBtn").onclick = () => {
   showAll = !showAll;
   document.getElementById("toggleViewBtn").innerText = showAll ? "Show Only Defective Panels" : "Show All Panels";
 };
 
+// Dark mode toggle
 document.getElementById("darkModeBtn").onclick = () => {
   document.body.classList.toggle("dark");
 };
