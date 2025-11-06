@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Solar Panel Efficiency Monitoring</title>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="top-bar">
+  <button id="toggleViewBtn">Show All Panels</button>
+  <button id="darkModeBtn">🌙 Dark Mode</button>
+</div>
+
+<h1>Solar Panel Efficiency Monitoring Dashboard</h1>
+
+<div id="fleetStats" class="fleet"></div>
+
+<div id="panelContainer" class="panel-grid"></div>
+<div id="noIssues" class="no-issues">
+  ✅ All panels operating normally
+</div>
+
+<div id="alertBox" class="alerts"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
